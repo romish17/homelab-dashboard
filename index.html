@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HomeLab Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              background: 'var(--color-background)',
+              surface: 'var(--color-surface)',
+              primary: 'var(--color-primary)',
+              secondary: 'var(--color-secondary)',
+              border: 'var(--color-border)',
+              text: {
+                main: 'var(--color-text-main)',
+                muted: 'var(--color-text-muted)',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        /* Light Theme Defaults */
+        --color-background: #f1f5f9;
+        --color-surface: #ffffff;
+        --color-primary: #3b82f6;
+        --color-secondary: #64748b;
+        --color-border: #e2e8f0;
+        --color-text-main: #0f172a;
+        --color-text-muted: #64748b;
+      }
+
+      html.dark {
+        /* Dark Theme Defaults */
+        --color-background: #0f172a;
+        --color-surface: #1e293b;
+        --color-primary: #3b82f6;
+        --color-secondary: #94a3b8;
+        --color-border: rgba(255, 255, 255, 0.1);
+        --color-text-main: #f1f5f9;
+        --color-text-muted: #94a3b8;
+      }
+
+      body {
+        background-color: var(--color-background);
+        color: var(--color-text-main);
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      
+      /* Hide scrollbar for clean look in some containers */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script>
+        // Check local storage for theme
+        if (localStorage.getItem('homelab_theme') === 'light') {
+            document.documentElement.classList.remove('dark');
+        } else {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "name": "HomeLab Dashboard",
+  "description": "Un tableau de bord personnel pour organiser vos liens favoris par catégories avec glisser-déposer.",
+  "requestFramePermissions": []
+}
