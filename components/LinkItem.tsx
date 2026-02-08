@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ExternalLink, Edit2, Trash2 } from 'lucide-react';
 import { LinkItem as LinkItemType, ViewMode } from '../types';
 import { getFaviconUrl } from '../utils';
@@ -28,35 +28,42 @@ export const LinkItem: React.FC<LinkItemProps> = ({ link, isEditable, viewMode, 
   };
 
   const isGrid = viewMode === 'grid';
+  const [imgFailed, setImgFailed] = useState(false);
+
+  const initial = link.title.charAt(0).toUpperCase();
 
   return (
     <div className={`
       group relative flex transition-all duration-200
-      ${isGrid 
-        ? 'flex-col items-center justify-center p-3 rounded-xl bg-transparent hover:bg-black/5 dark:hover:bg-white/5 aspect-square' 
+      ${isGrid
+        ? 'flex-col items-center justify-center p-3 rounded-xl bg-transparent hover:bg-black/5 dark:hover:bg-white/5 aspect-square'
         : 'flex-row items-center gap-3 p-3 rounded-lg bg-black/5 dark:bg-black/20 hover:bg-black/10 dark:hover:bg-white/5 border border-transparent hover:border-border'
       }
     `}>
-      <a 
-        href={link.url} 
-        target="_blank" 
+      <a
+        href={link.url}
+        target="_blank"
         rel="noopener noreferrer"
         className="absolute inset-0 z-0 rounded-xl"
         aria-label={`Ouvrir ${link.title}`}
       />
-      
+
       <div className={`
         relative z-10 flex-shrink-0 rounded-xl bg-surface flex items-center justify-center overflow-hidden border border-border shadow-sm
         ${isGrid ? 'w-14 h-14 mb-2' : 'w-10 h-10'}
       `}>
-        <img 
-          src={link.iconUrl || getFaviconUrl(link.url)} 
-          alt="" 
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
-        />
+        {imgFailed ? (
+          <span className={`font-bold text-primary ${isGrid ? 'text-xl' : 'text-base'}`}>
+            {initial}
+          </span>
+        ) : (
+          <img
+            src={link.iconUrl || getFaviconUrl(link.url)}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={() => setImgFailed(true)}
+          />
+        )}
       </div>
 
       <div className={`
