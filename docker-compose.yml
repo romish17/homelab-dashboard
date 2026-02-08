@@ -1,7 +1,40 @@
 services:
-  homelab-dashboard:
+  db:
+    image: postgres:16-alpine
+    container_name: homelab-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: homelab
+      POSTGRES_USER: homelab
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homelab"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./server
+    container_name: homelab-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://homelab:${DB_PASSWORD:-changeme}@db:5432/homelab
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret}
+      PORT: "4000"
+
+  frontend:
     build: .
     container_name: homelab-dashboard
+    restart: unless-stopped
+    depends_on:
+      - backend
     ports:
       - "3000:80"
-    restart: unless-stopped
+
+volumes:
+  pgdata:
