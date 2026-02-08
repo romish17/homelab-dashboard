@@ -13,10 +13,10 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/favicon', faviconRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api', linksRoutes);
-app.use('/api/favicon', faviconRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
