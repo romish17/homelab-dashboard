@@ -54,7 +54,7 @@ export const LinkItem: React.FC<LinkItemProps> = ({ link, isEditable, viewMode, 
           alt="" 
           className="w-full h-full object-cover"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://www.google.com/s2/favicons?domain=google.com';
+            (e.target as HTMLImageElement).style.display = 'none';
           }}
         />
       </div>
