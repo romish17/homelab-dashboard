@@ -5,6 +5,7 @@ import { migrate } from './migrate';
 import authRoutes from './routes/auth';
 import categoriesRoutes from './routes/categories';
 import linksRoutes from './routes/links';
+import faviconRoutes from './routes/favicon';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api', linksRoutes);
+app.use('/api/favicon', faviconRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
