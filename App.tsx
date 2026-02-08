@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, LayoutGrid, LogIn, LogOut, Info, Sun, Moon, List, LayoutTemplate, UserPlus } from 'lucide-react';
+import { Plus, LayoutGrid, LogIn, LogOut, Sun, Moon, List, LayoutTemplate, UserPlus } from 'lucide-react';
 import { Category, LinkItem, ViewMode } from './types';
 import { CategoryCard } from './components/CategoryCard';
 import { Modal } from './components/ui/Modal';
@@ -325,16 +325,6 @@ export default function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-
-        {/* Info Banner */}
-        <div className="mb-8 p-4 bg-primary/10 border border-primary/20 rounded-lg flex items-start gap-3 text-primary text-sm animate-in fade-in slide-in-from-top-2">
-          <Info className="shrink-0 mt-0.5" size={16} />
-          <p>
-            Vous êtes en mode édition. Glissez des liens (URL) dans les catégories.
-            <br/>
-            Vous pouvez aussi <strong>déplacer les catégories</strong> en les glissant-déposant.
-          </p>
-        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20 text-text-muted">
