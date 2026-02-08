@@ -1,7 +1,7 @@
 export const getFaviconUrl = (url: string) => {
   try {
     const domain = new URL(url).hostname;
-    return `https://${domain}/favicon.ico`;
+    return `https://icons.duckduckgo.com/ip3/${domain}.ico`;
   } catch (e) {
     return '';
   }

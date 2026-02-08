@@ -9,7 +9,6 @@ import { api } from './api';
 export default function App() {
   // --- Auth State ---
   const [isAuthenticated, setIsAuthenticated] = useState(!!api.getToken());
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -76,7 +75,6 @@ export default function App() {
       const { token } = await action(loginUsername, loginPassword);
       api.setToken(token);
       setIsAuthenticated(true);
-      setShowLoginModal(false);
       setLoginUsername('');
       setLoginPassword('');
     } catch (err: unknown) {
@@ -204,6 +202,71 @@ export default function App() {
     }
   };
 
+  // --- Login Page (not authenticated) ---
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background text-text-main font-sans flex items-center justify-center p-4">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <div className="bg-primary/10 p-3 rounded-xl inline-flex mb-4">
+              <LayoutGrid className="text-primary" size={32} />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">My HomeLab</h1>
+            <p className="text-text-muted text-sm mt-1">
+              {isRegisterMode ? 'Créez votre compte' : 'Connectez-vous pour accéder au dashboard'}
+            </p>
+          </div>
+
+          <form onSubmit={handleAuth} className="bg-surface border border-border rounded-xl p-6 flex flex-col gap-4 shadow-lg">
+            {authError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                {authError}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-text-muted mb-1">Nom d'utilisateur</label>
+              <input
+                type="text"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                placeholder="admin"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-main focus:outline-none focus:border-primary transition-colors"
+                autoFocus
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text-muted mb-1">Mot de passe</label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-main focus:outline-none focus:border-primary transition-colors"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 mt-2"
+            >
+              {isRegisterMode ? <UserPlus size={16} /> : <LogIn size={16} />}
+              {isRegisterMode ? 'Créer le compte' : 'Se connecter'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); }}
+              className="text-sm text-text-muted hover:text-primary transition-colors text-center"
+            >
+              {isRegisterMode ? 'Déjà un compte ? Se connecter' : 'Pas encore de compte ? S\'inscrire'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Dashboard (authenticated) ---
   return (
     <div className="min-h-screen bg-background text-text-main font-sans selection:bg-primary/30 transition-colors duration-300">
 
@@ -220,15 +283,13 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            {isAuthenticated && (
-               <button
-                onClick={() => setIsAddCategoryOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium shadow-lg shadow-blue-500/20"
-              >
-                <Plus size={16} />
-                <span className="hidden sm:inline">Nouvelle catégorie</span>
-              </button>
-            )}
+            <button
+              onClick={() => setIsAddCategoryOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium shadow-lg shadow-blue-500/20"
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">Nouvelle catégorie</span>
+            </button>
 
             {/* View Mode Toggle */}
              <button
@@ -251,23 +312,13 @@ export default function App() {
             {/* Divider */}
             <div className="h-6 w-px bg-border mx-1"></div>
 
-            {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-all text-sm font-medium border bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20"
-              >
-                <LogOut size={16} />
-                <span className="hidden sm:inline">Déconnexion</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => { setShowLoginModal(true); setIsRegisterMode(false); setAuthError(''); }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-all text-sm font-medium border bg-surface text-text-muted border-border hover:text-text-main hover:border-text-muted/50"
-              >
-                <LogIn size={16} />
-                <span className="hidden sm:inline">Connexion</span>
-              </button>
-            )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-all text-sm font-medium border bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Déconnexion</span>
+            </button>
           </div>
         </div>
       </header>
@@ -275,17 +326,15 @@ export default function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
 
-        {/* Info Banner if logged in */}
-        {isAuthenticated && (
-          <div className="mb-8 p-4 bg-primary/10 border border-primary/20 rounded-lg flex items-start gap-3 text-primary text-sm animate-in fade-in slide-in-from-top-2">
-            <Info className="shrink-0 mt-0.5" size={16} />
-            <p>
-              Vous êtes en mode édition. Glissez des liens (URL) dans les catégories.
-              <br/>
-              Vous pouvez aussi <strong>déplacer les catégories</strong> en les glissant-déposant.
-            </p>
-          </div>
-        )}
+        {/* Info Banner */}
+        <div className="mb-8 p-4 bg-primary/10 border border-primary/20 rounded-lg flex items-start gap-3 text-primary text-sm animate-in fade-in slide-in-from-top-2">
+          <Info className="shrink-0 mt-0.5" size={16} />
+          <p>
+            Vous êtes en mode édition. Glissez des liens (URL) dans les catégories.
+            <br/>
+            Vous pouvez aussi <strong>déplacer les catégories</strong> en les glissant-déposant.
+          </p>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20 text-text-muted">
@@ -299,7 +348,7 @@ export default function App() {
                 <CategoryCard
                   key={cat.id}
                   category={cat}
-                  isEditable={isAuthenticated}
+                  isEditable={true}
                   viewMode={viewMode}
                   onAddLink={addLinkToCategory}
                   onUpdateCategory={updateCategoryTitle}
@@ -315,75 +364,17 @@ export default function App() {
               <div className="flex flex-col items-center justify-center py-20 text-text-muted">
                 <LayoutGrid size={48} className="mb-4 opacity-20" />
                 <p className="text-lg">Votre tableau de bord est vide.</p>
-                {isAuthenticated ? (
-                   <button
-                    onClick={() => setIsAddCategoryOpen(true)}
-                    className="mt-4 text-primary hover:underline"
-                  >
-                    Créer une première catégorie
-                  </button>
-                ) : (
-                  <p className="text-sm mt-2">Connectez-vous pour commencer.</p>
-                )}
+                <button
+                  onClick={() => setIsAddCategoryOpen(true)}
+                  className="mt-4 text-primary hover:underline"
+                >
+                  Créer une première catégorie
+                </button>
               </div>
             )}
           </>
         )}
       </main>
-
-      {/* Login / Register Modal */}
-      <Modal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        title={isRegisterMode ? 'Créer un compte' : 'Connexion'}
-      >
-        <form onSubmit={handleAuth} className="flex flex-col gap-4">
-          {authError && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-              {authError}
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">Nom d'utilisateur</label>
-            <input
-              type="text"
-              value={loginUsername}
-              onChange={(e) => setLoginUsername(e.target.value)}
-              placeholder="admin"
-              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-main focus:outline-none focus:border-primary transition-colors"
-              autoFocus
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-text-muted mb-1">Mot de passe</label>
-            <input
-              type="password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-text-main focus:outline-none focus:border-primary transition-colors"
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-2 mt-2">
-            <button
-              type="submit"
-              className="w-full px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-            >
-              {isRegisterMode ? <UserPlus size={16} /> : <LogIn size={16} />}
-              {isRegisterMode ? 'Créer le compte' : 'Se connecter'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); }}
-              className="text-sm text-text-muted hover:text-primary transition-colors"
-            >
-              {isRegisterMode ? 'Déjà un compte ? Se connecter' : 'Pas encore de compte ? S\'inscrire'}
-            </button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Add Category Modal */}
       <Modal
