@@ -1,9 +1,9 @@
 export const getFaviconUrl = (url: string) => {
   try {
     const domain = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    return `https://${domain}/favicon.ico`;
   } catch (e) {
-    return 'https://www.google.com/s2/favicons?domain=google.com&sz=64'; // Fallback
+    return '';
   }
 };
 
