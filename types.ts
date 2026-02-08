@@ -12,8 +12,4 @@ export interface Category {
   links: LinkItem[];
 }
 
-export interface UserState {
-  isAuthenticated: boolean;
-}
-
 export type ViewMode = 'list' | 'grid';

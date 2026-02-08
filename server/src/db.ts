@@ -1,0 +1,8 @@
+import { Pool } from 'pg';
+import { config } from './config';
+
+export const pool = new Pool({
+  connectionString: config.databaseUrl,
+});
+
+export const query = (text: string, params?: unknown[]) => pool.query(text, params);
