@@ -4,22 +4,23 @@ Dashboard personnel pour organiser et gérer vos liens et bookmarks, avec authen
 
 ## Lancer avec Docker
 
-```bash
-docker compose up -d --build
-```
+1. Copier le fichier d'environnement et l'adapter :
+   ```bash
+   cp .env.example .env
+   ```
+2. Lancer les services :
+   ```bash
+   docker compose up -d --build
+   ```
 
 L'application sera accessible sur [http://localhost:3000](http://localhost:3000).
 
-### Configuration
+### Variables d'environnement
 
-Créez un fichier `.env` à la racine pour personnaliser les variables :
-
-```env
-DB_PASSWORD=mon-mot-de-passe-db
-JWT_SECRET=mon-secret-jwt-aleatoire
-```
-
-Des valeurs par défaut sont utilisées si le fichier `.env` n'est pas présent.
+| Variable | Description | Valeur par défaut |
+|----------|-------------|-------------------|
+| `DB_PASSWORD` | Mot de passe PostgreSQL | `changeme` |
+| `JWT_SECRET` | Clé secrète pour les tokens JWT | `change-this-secret` |
 
 ### Architecture
 
@@ -33,16 +34,20 @@ Des valeurs par défaut sont utilisées si le fichier `.env` n'est pas présent.
 
 **Prérequis :** Node.js, PostgreSQL
 
-1. Installer les dépendances :
+1. Copier le fichier d'environnement :
+   ```bash
+   cp .env.example .env
+   ```
+2. Installer les dépendances :
    ```bash
    npm install
    cd server && npm install && cd ..
    ```
-2. Lancer le backend :
+3. Lancer le backend :
    ```bash
    cd server && npm run dev
    ```
-3. Lancer le frontend (dans un autre terminal) :
+4. Lancer le frontend (dans un autre terminal) :
    ```bash
    npm run dev
    ```
