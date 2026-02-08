@@ -1,20 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# HomeLab Dashboard
 
-# Run and deploy your AI Studio app
+Dashboard personnel pour organiser et gérer vos liens et bookmarks.
 
-This contains everything you need to run your app locally.
+## Lancer avec Docker
 
-View your app in AI Studio: https://ai.studio/apps/drive/1_pzgVrYiAzvIs3SBqCsjolXBqvylpnAn
+```bash
+docker compose up -d --build
+```
 
-## Run Locally
+L'application sera accessible sur [http://localhost:3000](http://localhost:3000).
 
-**Prerequisites:**  Node.js
+## Lancer en local
 
+**Prérequis :** Node.js
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. Installer les dépendances :
+   ```bash
+   npm install
+   ```
+2. Lancer l'application :
+   ```bash
+   npm run dev
+   ```
+
+L'application sera accessible sur [http://localhost:3000](http://localhost:3000).
