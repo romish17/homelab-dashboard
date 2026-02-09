@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(100);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_path TEXT;
+
 CREATE TABLE IF NOT EXISTS categories (
   id         VARCHAR(20) PRIMARY KEY,
   user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -26,8 +29,27 @@ CREATE TABLE IF NOT EXISTS links (
   created_at  BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW()) * 1000)::BIGINT
 );
 
+CREATE TABLE IF NOT EXISTS rss_feeds (
+  id         VARCHAR(20) PRIMARY KEY,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title      VARCHAR(255) NOT NULL,
+  url        TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS subreddits (
+  id         VARCHAR(20) PRIMARY KEY,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name       VARCHAR(100) NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_categories_user ON categories(user_id, sort_order);
 CREATE INDEX IF NOT EXISTS idx_links_category ON links(category_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_rss_feeds_user ON rss_feeds(user_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_subreddits_user ON subreddits(user_id, sort_order);
 `;
 
 export async function migrate() {

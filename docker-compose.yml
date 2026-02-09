@@ -26,6 +26,8 @@ services:
       DATABASE_URL: postgresql://homelab:${DB_PASSWORD:-changeme}@db:5432/homelab
       JWT_SECRET: ${JWT_SECRET:-change-this-secret}
       PORT: "4000"
+    volumes:
+      - uploads:/app/uploads
 
   frontend:
     build: .
@@ -38,3 +40,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:

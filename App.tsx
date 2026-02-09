@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, LayoutGrid, LogIn, LogOut, Sun, Moon, List, LayoutTemplate, UserPlus } from 'lucide-react';
-import { Category, LinkItem, ViewMode } from './types';
+import { Plus, LayoutGrid, LogIn, LogOut, Sun, Moon, List, LayoutTemplate, UserPlus, Bookmark, Rss, MessageSquare, Grid3X3 } from 'lucide-react';
+import { Category, LinkItem, ViewMode, AppSection, UserProfile } from './types';
 import { CategoryCard } from './components/CategoryCard';
+import { ProfileModal } from './components/ProfileModal';
+import { RssFeedPanel } from './components/RssFeedPanel';
+import { SubredditPanel } from './components/SubredditPanel';
 import { Modal } from './components/ui/Modal';
 import { generateId } from './utils';
 import { api } from './api';
@@ -17,6 +20,7 @@ export default function App() {
   // --- Data State ---
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   // --- UI Preferences State ---
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -30,21 +34,33 @@ export default function App() {
     return (localStorage.getItem('homelab_view_mode') as ViewMode) || 'list';
   });
 
-  // --- Interaction State ---
+  const [activeSection, setActiveSection] = useState<AppSection>(() => {
+    return (localStorage.getItem('homelab_section') as AppSection) || 'bookmarks';
+  });
+
+  // --- Modal State ---
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<{ catId: string, link: LinkItem } | null>(null);
   const [newCatName, setNewCatName] = useState('');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // --- Effects ---
   useEffect(() => {
     if (!isAuthenticated) {
       setLoading(false);
       setCategories([]);
+      setProfile(null);
       return;
     }
     setLoading(true);
-    api.getCategories()
-      .then((data) => setCategories(data as Category[]))
+    Promise.all([
+      api.getCategories(),
+      api.getProfile(),
+    ])
+      .then(([cats, prof]) => {
+        setCategories(cats as Category[]);
+        setProfile(prof);
+      })
       .catch(() => {
         api.clearToken();
         setIsAuthenticated(false);
@@ -66,6 +82,10 @@ export default function App() {
     localStorage.setItem('homelab_view_mode', viewMode);
   }, [viewMode]);
 
+  useEffect(() => {
+    localStorage.setItem('homelab_section', activeSection);
+  }, [activeSection]);
+
   // --- Auth Actions ---
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,11 +106,28 @@ export default function App() {
     api.clearToken();
     setIsAuthenticated(false);
     setCategories([]);
+    setProfile(null);
   };
 
   // --- Actions ---
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-  const toggleViewMode = () => setViewMode(prev => prev === 'list' ? 'grid' : 'list');
+  const cycleViewMode = () => setViewMode(prev => {
+    if (prev === 'list') return 'grid';
+    if (prev === 'grid') return 'icon';
+    return 'list';
+  });
+
+  const viewModeIcon = () => {
+    if (viewMode === 'list') return <LayoutTemplate size={20} />;
+    if (viewMode === 'grid') return <Grid3X3 size={20} />;
+    return <List size={20} />;
+  };
+
+  const viewModeLabel = () => {
+    if (viewMode === 'list') return 'Vue Grille';
+    if (viewMode === 'grid') return 'Vue Icônes';
+    return 'Vue Liste';
+  };
 
   const addCategory = async () => {
     if (!newCatName.trim()) return;
@@ -202,6 +239,44 @@ export default function App() {
     }
   };
 
+  // --- Link Drag & Drop ---
+  const moveLinkBetweenCategories = (sourceCatId: string, linkId: string, targetCatId: string) => {
+    const sourceCat = categories.find(c => c.id === sourceCatId);
+    if (!sourceCat) return;
+    const link = sourceCat.links.find(l => l.id === linkId);
+    if (!link) return;
+
+    setCategories(categories.map(c => {
+      if (c.id === sourceCatId) {
+        return { ...c, links: c.links.filter(l => l.id !== linkId) };
+      }
+      if (c.id === targetCatId) {
+        return { ...c, links: [...c.links, link] };
+      }
+      return c;
+    }));
+
+    // Persist: delete from old, add to new
+    api.deleteLink(linkId)
+      .then(() => api.addLink(targetCatId, link))
+      .catch((err) => {
+        console.error('Erreur déplacement lien:', err);
+      });
+  };
+
+  const reorderLinkInCategory = (catId: string, sourceLinkId: string, targetLinkId: string) => {
+    setCategories(categories.map(c => {
+      if (c.id !== catId) return c;
+      const links = [...c.links];
+      const sourceIdx = links.findIndex(l => l.id === sourceLinkId);
+      const targetIdx = links.findIndex(l => l.id === targetLinkId);
+      if (sourceIdx === -1 || targetIdx === -1) return c;
+      const [moved] = links.splice(sourceIdx, 1);
+      links.splice(targetIdx, 0, moved);
+      return { ...c, links };
+    }));
+  };
+
   // --- Login Page (not authenticated) ---
   if (!isAuthenticated) {
     return (
@@ -266,6 +341,17 @@ export default function App() {
     );
   }
 
+  const displayName = profile?.displayName || profile?.username || '';
+  const avatarUrl = profile?.avatarUrl || null;
+  const initial = displayName.charAt(0).toUpperCase() || '?';
+
+  // --- Section Tabs ---
+  const sections: { key: AppSection; label: string; icon: React.ReactNode }[] = [
+    { key: 'bookmarks', label: 'Favoris', icon: <Bookmark size={16} /> },
+    { key: 'feeds', label: 'Flux RSS', icon: <Rss size={16} /> },
+    { key: 'subreddits', label: 'Subreddits', icon: <MessageSquare size={16} /> },
+  ];
+
   // --- Dashboard (authenticated) ---
   return (
     <div className="min-h-screen bg-background text-text-main font-sans selection:bg-primary/30 transition-colors duration-300">
@@ -282,44 +368,88 @@ export default function App() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={() => setIsAddCategoryOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium shadow-lg shadow-blue-500/20"
-            >
-              <Plus size={16} />
-              <span className="hidden sm:inline">Nouvelle catégorie</span>
-            </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Add Category (only in bookmarks section) */}
+            {activeSection === 'bookmarks' && (
+              <button
+                onClick={() => setIsAddCategoryOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium shadow-lg shadow-blue-500/20"
+              >
+                <Plus size={16} />
+                <span className="hidden sm:inline">Catégorie</span>
+              </button>
+            )}
 
-            {/* View Mode Toggle */}
-             <button
-              onClick={toggleViewMode}
-              className="p-2 text-text-muted hover:text-text-main hover:bg-surface rounded-md transition-colors"
-              title={viewMode === 'list' ? "Passer en vue Grille" : "Passer en vue Liste"}
-            >
-              {viewMode === 'list' ? <LayoutTemplate size={20} /> : <List size={20} />}
-            </button>
+            {/* View Mode Toggle (only in bookmarks) */}
+            {activeSection === 'bookmarks' && (
+              <button
+                onClick={cycleViewMode}
+                className="p-2 text-text-muted hover:text-text-main hover:bg-surface rounded-md transition-colors"
+                title={viewModeLabel()}
+              >
+                {viewModeIcon()}
+              </button>
+            )}
 
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               className="p-2 text-text-muted hover:text-text-main hover:bg-surface rounded-md transition-colors"
-              title={theme === 'dark' ? "Passer en mode Clair" : "Passer en mode Sombre"}
+              title={theme === 'dark' ? "Mode Clair" : "Mode Sombre"}
             >
               {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
             {/* Divider */}
-            <div className="h-6 w-px bg-border mx-1"></div>
+            <div className="h-6 w-px bg-border"></div>
 
+            {/* Profile Button */}
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="flex items-center gap-2 p-1 hover:bg-surface rounded-lg transition-colors"
+              title="Mon profil"
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-border">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm font-bold text-primary">{initial}</span>
+                )}
+              </div>
+              <span className="hidden sm:block text-sm font-medium text-text-main max-w-[100px] truncate">
+                {displayName}
+              </span>
+            </button>
+
+            {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-all text-sm font-medium border bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20"
+              className="p-2 rounded-md transition-all text-red-400 hover:text-red-500 hover:bg-red-500/10"
+              title="Déconnexion"
             >
-              <LogOut size={16} />
-              <span className="hidden sm:inline">Déconnexion</span>
+              <LogOut size={18} />
             </button>
           </div>
+        </div>
+
+        {/* Section Tabs */}
+        <div className="max-w-7xl mx-auto px-4">
+          <nav className="flex gap-1 -mb-px">
+            {sections.map(s => (
+              <button
+                key={s.key}
+                onClick={() => setActiveSection(s.key)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  activeSection === s.key
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-text-muted hover:text-text-main hover:border-border'
+                }`}
+              >
+                {s.icon}
+                <span className="hidden sm:inline">{s.label}</span>
+              </button>
+            ))}
+          </nav>
         </div>
       </header>
 
@@ -332,39 +462,61 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* Grid Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map((cat) => (
-                <CategoryCard
-                  key={cat.id}
-                  category={cat}
-                  isEditable={true}
-                  viewMode={viewMode}
-                  onAddLink={addLinkToCategory}
-                  onUpdateCategory={updateCategoryTitle}
-                  onDeleteCategory={deleteCategory}
-                  onUpdateLink={(catId, link) => setEditingLink({ catId, link })}
-                  onDeleteLink={deleteLink}
-                  onReorderCategory={reorderCategory}
-                />
-              ))}
-            </div>
+            {/* Bookmarks Section */}
+            {activeSection === 'bookmarks' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {categories.map((cat) => (
+                    <CategoryCard
+                      key={cat.id}
+                      category={cat}
+                      isEditable={true}
+                      viewMode={viewMode}
+                      onAddLink={addLinkToCategory}
+                      onUpdateCategory={updateCategoryTitle}
+                      onDeleteCategory={deleteCategory}
+                      onUpdateLink={(catId, link) => setEditingLink({ catId, link })}
+                      onDeleteLink={deleteLink}
+                      onReorderCategory={reorderCategory}
+                      onMoveLink={moveLinkBetweenCategories}
+                      onReorderLink={reorderLinkInCategory}
+                    />
+                  ))}
+                </div>
 
-            {categories.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 text-text-muted">
-                <LayoutGrid size={48} className="mb-4 opacity-20" />
-                <p className="text-lg">Votre tableau de bord est vide.</p>
-                <button
-                  onClick={() => setIsAddCategoryOpen(true)}
-                  className="mt-4 text-primary hover:underline"
-                >
-                  Créer une première catégorie
-                </button>
-              </div>
+                {categories.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-20 text-text-muted">
+                    <LayoutGrid size={48} className="mb-4 opacity-20" />
+                    <p className="text-lg">Votre tableau de bord est vide.</p>
+                    <button
+                      onClick={() => setIsAddCategoryOpen(true)}
+                      className="mt-4 text-primary hover:underline"
+                    >
+                      Créer une première catégorie
+                    </button>
+                  </div>
+                )}
+              </>
             )}
+
+            {/* RSS Feeds Section */}
+            {activeSection === 'feeds' && <RssFeedPanel />}
+
+            {/* Subreddits Section */}
+            {activeSection === 'subreddits' && <SubredditPanel />}
           </>
         )}
       </main>
+
+      {/* Profile Modal */}
+      {profile && (
+        <ProfileModal
+          isOpen={isProfileOpen}
+          onClose={() => setIsProfileOpen(false)}
+          profile={profile}
+          onProfileUpdate={setProfile}
+        />
+      )}
 
       {/* Add Category Modal */}
       <Modal
@@ -439,7 +591,7 @@ export default function App() {
             <div>
               <label className="block text-sm font-medium text-text-muted mb-1">URL de l'icône (optionnel)</label>
               <div className="flex gap-2">
-                 <input
+                <input
                   type="text"
                   value={editingLink.link.iconUrl || ''}
                   placeholder="Laissez vide pour le favicon par défaut"
