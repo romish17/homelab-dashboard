@@ -14,6 +14,8 @@ interface CategoryCardProps {
   onUpdateLink: (categoryId: string, link: LinkItemType) => void;
   onDeleteLink: (categoryId: string, linkId: string) => void;
   onReorderCategory: (sourceId: string, targetId: string) => void;
+  onMoveLink?: (sourceCatId: string, linkId: string, targetCatId: string) => void;
+  onReorderLink?: (catId: string, sourceLinkId: string, targetLinkId: string) => void;
 }
 
 export const CategoryCard: React.FC<CategoryCardProps> = ({
@@ -25,41 +27,54 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
   onDeleteCategory,
   onUpdateLink,
   onDeleteLink,
-  onReorderCategory
+  onReorderCategory,
+  onMoveLink,
+  onReorderLink
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(category.title);
+  const [dragOverLinkId, setDragOverLinkId] = useState<string | null>(null);
 
   // --- Category Drag Handlers ---
   const handleDragStart = (e: React.DragEvent) => {
     if (!isEditable) return;
-    // Set a specific data type to identify category dragging
     e.dataTransfer.setData('homelab/category-id', category.id);
     e.dataTransfer.effectAllowed = 'move';
-    // Optional: make the drag image transparent or customized here
+  };
+
+  // --- Link Drag Handlers ---
+  const handleLinkDragStart = (e: React.DragEvent, linkId: string) => {
+    e.stopPropagation();
+    e.dataTransfer.setData('homelab/link-id', linkId);
+    e.dataTransfer.setData('homelab/source-cat-id', category.id);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   // --- Drop Zone Handlers ---
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault();
     if (isEditable) {
       setIsDragOver(true);
       e.dataTransfer.dropEffect = 'move';
     }
   };
 
-  const handleDragLeave = () => {
-    setIsDragOver(false);
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only set false if we're leaving the card itself, not entering a child
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+    setDragOverLinkId(null);
 
     if (!isEditable) return;
 
-    // 1. Check if we are dropping an existing Category (Reorder)
+    // 1. Check for category reorder
     const draggedCategoryId = e.dataTransfer.getData('homelab/category-id');
     if (draggedCategoryId) {
       if (draggedCategoryId !== category.id) {
@@ -68,10 +83,51 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
       return;
     }
 
-    // 2. Check if we are dropping a URL (Add Link)
+    // 2. Check for link move between categories
+    const draggedLinkId = e.dataTransfer.getData('homelab/link-id');
+    const sourceCatId = e.dataTransfer.getData('homelab/source-cat-id');
+    if (draggedLinkId && sourceCatId && onMoveLink) {
+      if (sourceCatId !== category.id) {
+        onMoveLink(sourceCatId, draggedLinkId, category.id);
+      }
+      return;
+    }
+
+    // 3. Check for URL drop
     const droppedText = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text/uri-list');
     if (droppedText && isValidUrl(droppedText)) {
       onAddLink(category.id, droppedText);
+    }
+  };
+
+  // --- Link drop zone within category (for reordering) ---
+  const handleLinkDragOver = (e: React.DragEvent, linkId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const draggedLinkId = e.dataTransfer.types.includes('homelab/link-id') ? true : false;
+    if (draggedLinkId) {
+      setDragOverLinkId(linkId);
+    }
+  };
+
+  const handleLinkDrop = (e: React.DragEvent, targetLinkId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverLinkId(null);
+
+    const draggedLinkId = e.dataTransfer.getData('homelab/link-id');
+    const sourceCatId = e.dataTransfer.getData('homelab/source-cat-id');
+
+    if (!draggedLinkId) return;
+
+    // If same category, reorder
+    if (sourceCatId === category.id && onReorderLink) {
+      if (draggedLinkId !== targetLinkId) {
+        onReorderLink(category.id, draggedLinkId, targetLinkId);
+      }
+    } else if (sourceCatId !== category.id && onMoveLink) {
+      // Move to this category
+      onMoveLink(sourceCatId, draggedLinkId, category.id);
     }
   };
 
@@ -84,8 +140,10 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     setIsEditingTitle(false);
   };
 
+  const isIcon = viewMode === 'icon';
+
   return (
-    <div 
+    <div
       draggable={isEditable}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
@@ -94,8 +152,8 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
       className={`
         flex flex-col h-fit mb-6
         rounded-xl border shadow-sm transition-all duration-300
-        ${isDragOver 
-          ? 'bg-blue-500/10 border-primary ring-2 ring-primary/20 scale-[1.02]' 
+        ${isDragOver
+          ? 'bg-blue-500/10 border-primary ring-2 ring-primary/20 scale-[1.02]'
           : 'bg-surface border-border hover:border-border/80'
         }
         ${isEditable ? 'cursor-grab active:cursor-grabbing' : ''}
@@ -103,8 +161,6 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 pb-2 border-b border-transparent group">
-        
-        {/* Drag Handle Icon (Visual cue) */}
         {isEditable && (
           <div className="mr-2 text-text-muted cursor-grab active:cursor-grabbing">
             <GripVertical size={16} />
@@ -120,7 +176,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
             onBlur={saveTitle}
             onKeyDown={(e) => e.key === 'Enter' && saveTitle()}
             className="flex-1 bg-background border border-primary rounded px-2 py-1 text-sm text-text-main focus:outline-none"
-            onMouseDown={(e) => e.stopPropagation()} // Prevent drag start when clicking input
+            onMouseDown={(e) => e.stopPropagation()}
           />
         ) : (
           <h3 className="font-semibold text-text-main flex-1 truncate pr-2 select-none">
@@ -130,7 +186,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
 
         {isEditable && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-             <button
+            <button
               onClick={() => setIsEditingTitle(true)}
               className="p-1.5 text-text-muted hover:text-text-main hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors"
               title="Renommer la catégorie"
@@ -140,7 +196,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
             </button>
             <button
               onClick={() => {
-                if(window.confirm('Supprimer cette catégorie et tous ses liens ?')) {
+                if (window.confirm('Supprimer cette catégorie et tous ses liens ?')) {
                   onDeleteCategory(category.id);
                 }
               }}
@@ -155,16 +211,16 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
       </div>
 
       {/* Links List */}
-      <div 
+      <div
         className={`
           p-4 pt-2
-          ${viewMode === 'grid' 
-            ? 'grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2' 
-            : 'flex flex-col gap-2'
+          ${isIcon
+            ? 'grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-1'
+            : viewMode === 'grid'
+              ? 'grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2'
+              : 'flex flex-col gap-2'
           }
         `}
-        // Prevent category drag when interacting with the list area specifically? 
-        // No, we usually want to be able to drag by grabbing the background.
       >
         {category.links.length === 0 ? (
           <div className={`
@@ -182,15 +238,20 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
           </div>
         ) : (
           category.links.map((link) => (
-            // Stop propagation on links to prevent dragging the category when trying to drag a link (if we add link reordering later)
-            // For now, links are clickable.
-            <div key={link.id} onDragStart={(e) => e.stopPropagation()} draggable={false}> 
-              <LinkItem 
-                link={link} 
+            <div
+              key={link.id}
+              onDragOver={(e) => handleLinkDragOver(e, link.id)}
+              onDrop={(e) => handleLinkDrop(e, link.id)}
+              className={`${dragOverLinkId === link.id ? 'ring-2 ring-primary/40 rounded-lg' : ''}`}
+            >
+              <LinkItem
+                link={link}
                 isEditable={isEditable}
                 viewMode={viewMode}
                 onEdit={(l) => onUpdateLink(category.id, l)}
                 onDelete={(lid) => onDeleteLink(category.id, lid)}
+                draggable={isEditable}
+                onDragStart={handleLinkDragStart}
               />
             </div>
           ))
